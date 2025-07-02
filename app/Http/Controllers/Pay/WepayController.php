@@ -80,9 +80,91 @@ class WepayController extends PayController
             $result = $pay->verify();
             $total_fee = bcdiv($result->total_fee, 100, 2);
             $this->orderProcessService->completedOrder($result->out_trade_no, $total_fee, $result->transaction_id);
+            
+            // 如果是NextJS订单，发送通知
+            $this->notifyNextJSIfNeeded($order);
+            
             return 'success';
         } catch (\Exception $exception) {
             return 'fail';
+        }
+    }
+
+    /**
+     * 如果是NextJS订单，发送通知
+     */
+    private function notifyNextJSIfNeeded($order)
+    {
+        try {
+            // 检查是否是NextJS订单（通过info字段判断）
+            $userInfo = json_decode($order->info, true);
+            
+            // 处理传统NextJS套餐订单
+            if (is_array($userInfo) && isset($userInfo['notify_url']) && isset($userInfo['user_id'])) {
+                // 发送通知到NextJS应用
+                $notifyData = [
+                    'order_sn' => $order->order_sn,
+                    'user_id' => $userInfo['user_id'],
+                    'plan_type' => $userInfo['plan_type'] ?? '',
+                    'amount' => $order->actual_price,
+                    'trade_no' => $order->trade_no,
+                    'status' => 'completed',
+                    'timestamp' => time(),
+                    'signature' => md5($order->order_sn . $order->actual_price . 'dujiaoka_secret_key')
+                ];
+
+                $this->sendNotification($userInfo['notify_url'], $notifyData, 'NextJS');
+            }
+            
+            // 处理支付网关订单
+            if (is_array($userInfo) && isset($userInfo['gateway_mode']) && $userInfo['gateway_mode']) {
+                // 调用支付网关控制器处理
+                $gatewayController = app('App\Http\Controllers\Api\PaymentGatewayController');
+                $gatewayController->handlePaymentSuccess($order);
+            }
+
+        } catch (\Exception $e) {
+            \Log::error('支付通知发送失败', [
+                'order_sn' => $order->order_sn,
+                'error' => $e->getMessage()
+            ]);
+        }
+    }
+
+    /**
+     * 发送通知的通用方法
+     */
+    private function sendNotification($notifyUrl, $notifyData, $source = 'Unknown')
+    {
+        try {
+            $ch = curl_init();
+            curl_setopt($ch, CURLOPT_URL, $notifyUrl);
+            curl_setopt($ch, CURLOPT_POST, 1);
+            curl_setopt($ch, CURLOPT_POSTFIELDS, json_encode($notifyData));
+            curl_setopt($ch, CURLOPT_HTTPHEADER, [
+                'Content-Type: application/json',
+                'User-Agent: Dujiaoka-Payment-Notify/1.0'
+            ]);
+            curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+            curl_setopt($ch, CURLOPT_TIMEOUT, 10);
+            curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, false);
+            
+            $response = curl_exec($ch);
+            $httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+            curl_close($ch);
+
+            \Log::info($source . '支付通知发送', [
+                'order_sn' => $notifyData['order_sn'] ?? $notifyData['payment_id'] ?? '',
+                'notify_url' => $notifyUrl,
+                'response' => $response,
+                'http_code' => $httpCode
+            ]);
+
+        } catch (\Exception $e) {
+            \Log::error($source . '支付通知发送失败', [
+                'notify_url' => $notifyUrl,
+                'error' => $e->getMessage()
+            ]);
         }
     }
 
