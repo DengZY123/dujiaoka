@@ -316,11 +316,23 @@ class PaymentGatewayController extends BaseController
         if (!$virtualGoods) {
             // 创建虚拟商品
             $virtualGoods = new Goods();
+            $virtualGoods->group_id = 1; // 设置默认分组ID
             $virtualGoods->gd_name = 'Gateway Virtual Product';
             $virtualGoods->gd_description = '支付网关虚拟商品，用于处理自定义金额支付';
-            $virtualGoods->actual_price = 0; // 虚拟商品价格为0，实际金额由订单控制
-            $virtualGoods->type = Order::MANUAL_PROCESSING;
+            $virtualGoods->gd_keywords = '支付网关,虚拟商品,自定义金额'; // 必填字段
+            $virtualGoods->picture = ''; // 可选字段
+            $virtualGoods->retail_price = 0.00;
+            $virtualGoods->actual_price = 0.00; // 虚拟商品价格为0，实际金额由订单控制
             $virtualGoods->in_stock = 999999; // 虚拟无限库存
+            $virtualGoods->sales_volume = 0;
+            $virtualGoods->ord = 1;
+            $virtualGoods->buy_limit_num = 0; // 不限制购买数量
+            $virtualGoods->buy_prompt = '';
+            $virtualGoods->description = '此商品用于支付网关处理自定义金额支付，请勿手动购买';
+            $virtualGoods->type = Order::MANUAL_PROCESSING;
+            $virtualGoods->wholesale_price_cnf = '';
+            $virtualGoods->other_ipu_cnf = '';
+            $virtualGoods->api_hook = '';
             $virtualGoods->is_open = Goods::STATUS_OPEN;
             $virtualGoods->save();
         }
