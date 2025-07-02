@@ -120,8 +120,8 @@ class AlipayController extends PayController
         try {
             $userInfo = json_decode($order->info, true);
             
-            // 检查是否是网关模式订单
-            if (isset($userInfo['gateway_mode']) && $userInfo['gateway_mode']) {
+            // 检查是否是网关模式订单（安全的JSON解析）
+            if (is_array($userInfo) && isset($userInfo['gateway_mode']) && $userInfo['gateway_mode']) {
                 // 网关模式：调用PaymentGatewayController的处理方法
                 $gatewayController = app('App\Http\Controllers\Api\PaymentGatewayController');
                 $gatewayController->handlePaymentSuccess($order);

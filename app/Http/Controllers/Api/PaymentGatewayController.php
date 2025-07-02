@@ -62,10 +62,12 @@ class PaymentGatewayController extends BaseController
                 ], 400);
             }
 
-            // 检查外部订单号是否已存在
-            $existingOrder = Order::whereJsonContains('info->external_order_id', $request->order_id)
-                ->whereJsonContains('info->gateway_mode', true)
-                ->first();
+            // 检查外部订单号是否已存在（安全的JSON查询）
+            $existingOrder = Order::where(function($query) use ($request) {
+                $query->whereRaw("JSON_VALID(info) = 1")
+                      ->whereJsonContains('info->external_order_id', $request->order_id)
+                      ->whereJsonContains('info->gateway_mode', true);
+            })->first();
             
             if ($existingOrder) {
                 return response()->json([
@@ -175,7 +177,10 @@ class PaymentGatewayController extends BaseController
             ]);
 
             $order = Order::where('order_sn', $request->payment_id)
-                ->whereJsonContains('info->gateway_mode', true)
+                ->where(function($query) {
+                    $query->whereRaw("JSON_VALID(info) = 1")
+                          ->whereJsonContains('info->gateway_mode', true);
+                })
                 ->first();
             
             if (!$order) {
@@ -235,11 +240,17 @@ class PaymentGatewayController extends BaseController
             $limit = min($request->get('limit', 20), 100);
             $externalOrderId = $request->get('external_order_id');
 
-            $query = Order::whereJsonContains('info->gateway_mode', true)
+            $query = Order::where(function($q) {
+                    $q->whereRaw("JSON_VALID(info) = 1")
+                      ->whereJsonContains('info->gateway_mode', true);
+                })
                 ->orderBy('created_at', 'desc');
 
             if ($externalOrderId) {
-                $query->whereJsonContains('info->external_order_id', $externalOrderId);
+                $query->where(function($q) use ($externalOrderId) {
+                    $q->whereRaw("JSON_VALID(info) = 1")
+                      ->whereJsonContains('info->external_order_id', $externalOrderId);
+                });
             }
 
             $orders = $query->paginate($limit, ['*'], 'page', $page);
