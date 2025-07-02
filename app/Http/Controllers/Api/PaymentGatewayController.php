@@ -458,7 +458,7 @@ class PaymentGatewayController extends BaseController
                     'status' => 'completed',
                     'metadata' => $gatewayData['metadata'] ?? [],
                     'timestamp' => time(),
-                    'signature' => $this->generateSignature($order->order_sn, $order->actual_price)
+                    'key' => env('PAYMENT_GATEWAY_SECRET', 'dujiaoka_gateway_secret_key')
                 ]);
             }
 
@@ -512,16 +512,4 @@ class PaymentGatewayController extends BaseController
         }
     }
 
-    /**
-     * 生成通知签名
-     * 
-     * @param string $paymentId
-     * @param float $amount
-     * @return string
-     */
-    private function generateSignature(string $paymentId, float $amount): string
-    {
-        $secretKey = env('PAYMENT_GATEWAY_SECRET', 'dujiaoka_gateway_secret_key');
-        return md5($paymentId . $amount . $secretKey);
-    }
 }

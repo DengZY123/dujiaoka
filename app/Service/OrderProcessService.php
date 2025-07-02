@@ -449,30 +449,44 @@ class OrderProcessService
      */
     public function processManual(Order $order)
     {
-        // 设置订单为待处理
-        $order->status = Order::STATUS_PENDING;
+        // 检查是否是网关订单，网关订单直接标记为已完成
+        $orderInfo = json_decode($order->info, true);
+        $isGatewayOrder = is_array($orderInfo) && isset($orderInfo['gateway_mode']) && $orderInfo['gateway_mode'];
+        
+        if ($isGatewayOrder) {
+            // 网关订单直接设置为已完成，无需人工处理
+            $order->status = Order::STATUS_COMPLETED;
+        } else {
+            // 传统订单设置为待处理
+            $order->status = Order::STATUS_PENDING;
+        }
         // 保存订单
         $order->save();
         // 商品库存减去
         $this->goodsService->inStockDecr($order->goods_id, $order->buy_amount);
-        // 邮件数据
-        $mailData = [
-            'created_at' => $order->create_at,
-            'product_name' => $order->goods->gd_name,
-            'webname' => dujiaoka_config_get('text_logo', '独角数卡'),
-            'weburl' => config('app.url') ?? 'http://dujiaoka.com',
-            'ord_info' => str_replace(PHP_EOL, '<br/>', $order->info),
-            'ord_title' => $order->title,
-            'order_id' => $order->order_sn,
-            'buy_amount' => $order->buy_amount,
-            'ord_price' => $order->actual_price,
-            'created_at' => $order->created_at,
-        ];
-        $tpl = $this->emailtplService->detailByToken('manual_send_manage_mail');
-        $mailBody = replace_mail_tpl($tpl, $mailData);
-        $manageMail = dujiaoka_config_get('manage_email', '');
-        // 邮件发送
-        MailSend::dispatch($manageMail, $mailBody['tpl_name'], $mailBody['tpl_content']);
+        
+        // 只有非网关订单才发送管理员邮件
+        if (!$isGatewayOrder) {
+            // 邮件数据
+            $mailData = [
+                'created_at' => $order->create_at,
+                'product_name' => $order->goods->gd_name,
+                'webname' => dujiaoka_config_get('text_logo', '独角数卡'),
+                'weburl' => config('app.url') ?? 'http://dujiaoka.com',
+                'ord_info' => str_replace(PHP_EOL, '<br/>', $order->info),
+                'ord_title' => $order->title,
+                'order_id' => $order->order_sn,
+                'buy_amount' => $order->buy_amount,
+                'ord_price' => $order->actual_price,
+                'created_at' => $order->created_at,
+            ];
+            $tpl = $this->emailtplService->detailByToken('manual_send_manage_mail');
+            $mailBody = replace_mail_tpl($tpl, $mailData);
+            $manageMail = dujiaoka_config_get('manage_email', '');
+            // 邮件发送
+            MailSend::dispatch($manageMail, $mailBody['tpl_name'], $mailBody['tpl_content']);
+        }
+        
         return $order;
     }
 
