@@ -32,6 +32,9 @@ class WepayController extends PayController
             ];
             switch ($payway){
                 case 'wescan':
+                case 'wescan2':  // 支持多个微信扫码商户
+                case 'wescan3':  // 预留更多商户号
+                case 'wescan4':
                     try{
                         $result = Pay::wechat($config)->scan($order)->toArray();
                         $result['qr_code'] = $result['code_url'];
