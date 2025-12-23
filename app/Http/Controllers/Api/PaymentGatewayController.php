@@ -49,7 +49,7 @@ class PaymentGatewayController extends BaseController
                 'description' => 'required|string|max:255',
                 'notify_url' => 'required|url|max:512',
                 'return_url' => 'required|url|max:512',
-                'pay_method' => 'string|in:wescan,aliweb,aliwap', // 支付方式
+                'pay_method' => 'string|in:wescan,wescan2,aliweb,aliwap', // 支付方式（新增wescan2）
                 'metadata' => 'array' // 业务自定义数据
             ]);
 
@@ -367,6 +367,7 @@ class PaymentGatewayController extends BaseController
 
             switch ($payMethod) {
                 case 'wescan':
+                case 'wescan2':  // 🆕 公司商户，使用相同的微信扫码逻辑
                     $result = \Yansongda\Pay\Pay::wechat($config)->scan($payOrder)->toArray();
                     return [
                         'type' => 'qrcode',
