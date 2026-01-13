@@ -2,6 +2,18 @@ FROM webdevops/php-nginx:7.4
 COPY . /app
 WORKDIR /app
 RUN [ "sh", "-c", "composer install --ignore-platform-reqs" ]
-RUN echo "#!/bin/bash\nphp artisan queue:work >/tmp/work.log 2>&1 &\nsupervisord" > /app/start.sh
-RUN [ "sh", "-c", "chmod -R 777 /app" ]
+RUN cat <<'EOF' > /app/start.sh
+#!/bin/sh
+set -e
+
+if [ "${AUTO_INSTALL_LOCK:-true}" = "true" ] && [ ! -e /app/install.lock ]; then
+  echo "install ok" > /app/install.lock
+fi
+
+exec supervisord
+EOF
+RUN mkdir -p /app/public/uploads /app/storage/logs /app/bootstrap/cache \
+    && chown -R application:application /app \
+    && chmod -R 755 /app \
+    && chmod -R 775 /app/storage /app/bootstrap/cache /app/public/uploads
 CMD [ "sh", "-c","/app/start.sh" ]

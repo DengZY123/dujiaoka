@@ -1,0 +1,162 @@
+# Dokploy 适配版本
+# 部署后在 Dokploy 面板 Domains 标签页配置域名
+
+services:
+  # ==========================================
+  # MySQL 数据库服务
+  # ==========================================
+  mysql:
+    image: mysql:8.0
+    restart: always
+    environment:
+      MYSQL_ROOT_PASSWORD: ${DB_ROOT_PASSWORD}
+      MYSQL_DATABASE: ${DB_DATABASE:-dujiaoka}
+      MYSQL_USER: ${DB_USERNAME:-dujiaoka}
+      MYSQL_PASSWORD: ${DB_PASSWORD}
+      TZ: Asia/Shanghai
+    volumes:
+      - mysql_data:/var/lib/mysql
+      - ./database/sql/install.sql:/docker-entrypoint-initdb.d/install.sql:ro
+    command:
+      - --character-set-server=utf8mb4
+      - --collation-server=utf8mb4_unicode_ci
+      - --default-authentication-plugin=caching_sha2_password
+    networks:
+      - dokploy-network
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # ==========================================
+  # Redis 缓存/队列服务
+  # ==========================================
+  redis:
+    image: redis:7-alpine
+    restart: always
+    command: redis-server --appendonly yes --requirepass ${REDIS_PASSWORD}
+    environment:
+      TZ: Asia/Shanghai
+      REDIS_PASSWORD: ${REDIS_PASSWORD}
+    volumes:
+      - redis_data:/data
+    networks:
+      - dokploy-network
+    healthcheck:
+      test: ["CMD", "redis-cli", "-a", "${REDIS_PASSWORD}", "ping"]
+      interval: 10s
+      timeout: 3s
+      retries: 5
+
+  # ==========================================
+  # Web 应用服务（Nginx + PHP-FPM）
+  # ==========================================
+  web:
+    image: dengziyang77/dujiaoka-web:latest
+    platform: linux/amd64
+    restart: always
+    expose:
+      - "80"
+    environment:
+      WEB_DOCUMENT_ROOT: "/app/public"
+      TZ: Asia/Shanghai
+      # Laravel环境变量
+      APP_NAME: ${APP_NAME:-独角数卡}
+      APP_ENV: ${APP_ENV:-production}
+      APP_KEY: ${APP_KEY}
+      APP_DEBUG: ${APP_DEBUG:-false}
+      APP_URL: ${APP_URL}
+      LOG_CHANNEL: ${LOG_CHANNEL:-stack}
+      BROADCAST_DRIVER: ${BROADCAST_DRIVER:-log}
+      AUTO_INSTALL_LOCK: ${AUTO_INSTALL_LOCK:-true}
+
+      DB_CONNECTION: mysql
+      DB_HOST: mysql
+      DB_PORT: 3306
+      DB_DATABASE: ${DB_DATABASE:-dujiaoka}
+      DB_USERNAME: ${DB_USERNAME:-dujiaoka}
+      DB_PASSWORD: ${DB_PASSWORD}
+
+      REDIS_HOST: redis
+      REDIS_PASSWORD: ${REDIS_PASSWORD}
+      REDIS_PORT: 6379
+
+      CACHE_DRIVER: ${CACHE_DRIVER:-redis}
+      SESSION_DRIVER: ${SESSION_DRIVER:-redis}
+      SESSION_LIFETIME: ${SESSION_LIFETIME:-120}
+      QUEUE_CONNECTION: ${QUEUE_CONNECTION:-redis}
+
+      DUJIAO_ADMIN_LANGUAGE: ${DUJIAO_ADMIN_LANGUAGE:-zh_CN}
+      ADMIN_ROUTE_PREFIX: ${ADMIN_ROUTE_PREFIX:-/admin}
+      ADMIN_HTTPS: ${ADMIN_HTTPS:-true}
+    volumes:
+      - uploads_data:/app/public/uploads
+      - logs_data:/app/storage/logs
+    depends_on:
+      mysql:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    networks:
+      - dokploy-network
+    healthcheck:
+      test: ["CMD-SHELL", "wget -q --spider http://localhost/ || exit 1"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+
+  # ==========================================
+  # Queue Worker 服务（处理异步任务）
+  # ==========================================
+  worker:
+    image: dengziyang77/dujiaoka-worker:latest
+    platform: linux/amd64
+    restart: always
+    command: php artisan queue:work redis --sleep=3 --tries=3 --max-time=3600
+    environment:
+      TZ: Asia/Shanghai
+      APP_NAME: ${APP_NAME:-独角数卡}
+      APP_ENV: ${APP_ENV:-production}
+      APP_KEY: ${APP_KEY}
+      APP_DEBUG: false
+
+      DB_CONNECTION: mysql
+      DB_HOST: mysql
+      DB_PORT: 3306
+      DB_DATABASE: ${DB_DATABASE:-dujiaoka}
+      DB_USERNAME: ${DB_USERNAME:-dujiaoka}
+      DB_PASSWORD: ${DB_PASSWORD}
+
+      REDIS_HOST: redis
+      REDIS_PASSWORD: ${REDIS_PASSWORD}
+      REDIS_PORT: 6379
+
+      CACHE_DRIVER: ${CACHE_DRIVER:-redis}
+      QUEUE_CONNECTION: ${QUEUE_CONNECTION:-redis}
+    volumes:
+      - logs_data:/app/storage/logs
+    depends_on:
+      mysql:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    networks:
+      - dokploy-network
+
+# ==========================================
+# 网络配置 - Dokploy 要求使用外部网络
+# ==========================================
+networks:
+  dokploy-network:
+    external: true
+
+# ==========================================
+# Volume 持久化存储
+# ==========================================
+volumes:
+  mysql_data:
+  redis_data:
+  uploads_data:
+  logs_data:

@@ -1,0 +1,58 @@
+# Git相关
+.git
+.github
+.gitignore
+.gitattributes
+
+# 依赖包（构建时重新安装）
+node_modules
+vendor
+
+# 环境配置（运行时注入）
+.env
+.env.*
+!.env.example
+
+# 日志和缓存
+storage/logs/*
+storage/framework/cache/*
+storage/framework/sessions/*
+storage/framework/views/*
+bootstrap/cache/*
+*.log
+
+# 测试文件
+tests
+.phpunit.result.cache
+phpunit.xml
+
+# IDE配置
+.idea
+.vscode
+*.swp
+*.swo
+
+# 部署相关
+docker-compose.yml
+docker-compose.*.yml
+docker-compose.yaml
+docker-compose.*.yaml
+README.md
+*.md
+!INSTALL.md
+
+# 构建产物
+public/uploads/*
+public/hot
+public/storage
+mix-manifest.json
+
+# 数据目录
+data/
+install.lock
+
+# 临时文件
+*.tmp
+*.bak
+.DS_Store
+Thumbs.db
