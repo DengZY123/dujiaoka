@@ -114,7 +114,7 @@ services:
     image: dengziyang77/dujiaoka-worker:latest
     platform: linux/amd64
     restart: always
-    command: php artisan queue:work redis --sleep=3 --tries=3 --max-time=3600
+    command: php artisan queue:work redis --sleep=3 --tries=3
     environment:
       TZ: Asia/Shanghai
       APP_NAME: ${APP_NAME:-独角数卡}
