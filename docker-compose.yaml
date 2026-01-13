@@ -93,6 +93,7 @@ services:
     volumes:
       - uploads_data:/app/public/uploads
       - logs_data:/app/storage/logs
+      - app_lock:/app/install.lock
     depends_on:
       mysql:
         condition: service_healthy
@@ -160,3 +161,4 @@ volumes:
   redis_data:
   uploads_data:
   logs_data:
+  app_lock:
