@@ -90,6 +90,7 @@ services:
       DUJIAO_ADMIN_LANGUAGE: ${DUJIAO_ADMIN_LANGUAGE:-zh_CN}
       ADMIN_ROUTE_PREFIX: ${ADMIN_ROUTE_PREFIX:-/admin}
       ADMIN_HTTPS: ${ADMIN_HTTPS:-true}
+      PAYMENT_GATEWAY_SECRET: ${PAYMENT_GATEWAY_SECRET}
     volumes:
       - uploads_data:/app/public/uploads
       - logs_data:/app/storage/logs
@@ -136,6 +137,7 @@ services:
 
       CACHE_DRIVER: ${CACHE_DRIVER:-redis}
       QUEUE_CONNECTION: ${QUEUE_CONNECTION:-redis}
+      PAYMENT_GATEWAY_SECRET: ${PAYMENT_GATEWAY_SECRET}
     volumes:
       - logs_data:/app/storage/logs
     depends_on:
