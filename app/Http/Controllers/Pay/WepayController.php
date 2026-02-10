@@ -42,7 +42,7 @@ class WepayController extends PayController
                         $result['actual_price'] = (float)$this->order->actual_price;
                         $result['orderid'] = $this->order->order_sn;
                         return $this->render('static_pages/qrpay', $result, __('dujiaoka.scan_qrcode_to_pay'));
-                    } catch (\Exception $e) {
+                    } catch (\Throwable $e) {
                         throw new RuleValidationException(__('dujiaoka.prompt.abnormal_payment_channel') . $e->getMessage());
                     }
                     break;
@@ -88,7 +88,7 @@ class WepayController extends PayController
             $this->notifyNextJSIfNeeded($order);
             
             return 'success';
-        } catch (\Exception $exception) {
+        } catch (\Throwable $exception) {
             return 'fail';
         }
     }
@@ -126,7 +126,7 @@ class WepayController extends PayController
                 $gatewayController->handlePaymentSuccess($order);
             }
 
-        } catch (\Exception $e) {
+        } catch (\Throwable $e) {
             \Log::error('支付通知发送失败', [
                 'order_sn' => $order->order_sn,
                 'error' => $e->getMessage()
@@ -163,7 +163,7 @@ class WepayController extends PayController
                 'http_code' => $httpCode
             ]);
 
-        } catch (\Exception $e) {
+        } catch (\Throwable $e) {
             \Log::error($source . '支付通知发送失败', [
                 'notify_url' => $notifyUrl,
                 'error' => $e->getMessage()

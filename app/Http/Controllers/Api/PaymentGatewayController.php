@@ -49,7 +49,7 @@ class PaymentGatewayController extends BaseController
                 'description' => 'required|string|max:255',
                 'notify_url' => 'required|url|max:512',
                 'return_url' => 'required|url|max:512',
-                'pay_method' => 'string|in:wescan,wescan2,aliweb,aliwap', // 支付方式（新增wescan2）
+                'pay_method' => 'string|in:wescan,wescan2,wescan3,aliweb,aliwap', // 支付方式（新增wescan2/wescan3）
                 'metadata' => 'array' // 业务自定义数据
             ]);
 
@@ -150,7 +150,7 @@ class PaymentGatewayController extends BaseController
                 ]
             ]);
 
-        } catch (\Exception $e) {
+        } catch (\Throwable $e) {
             \Log::error('支付网关创建订单失败', [
                 'error' => $e->getMessage(),
                 'trace' => $e->getTraceAsString()
@@ -219,7 +219,7 @@ class PaymentGatewayController extends BaseController
                 ]
             ]);
 
-        } catch (\Exception $e) {
+        } catch (\Throwable $e) {
             return response()->json([
                 'success' => false,
                 'error' => '查询失败: ' . $e->getMessage()
@@ -291,7 +291,7 @@ class PaymentGatewayController extends BaseController
                 ]
             ]);
 
-        } catch (\Exception $e) {
+        } catch (\Throwable $e) {
             return response()->json([
                 'success' => false,
                 'error' => '查询失败: ' . $e->getMessage()
@@ -368,6 +368,7 @@ class PaymentGatewayController extends BaseController
             switch ($payMethod) {
                 case 'wescan':
                 case 'wescan2':  // 🆕 公司商户，使用相同的微信扫码逻辑
+                case 'wescan3':  // 🆕 第三个微信扫码账户
                     $result = \Yansongda\Pay\Pay::wechat($config)->scan($payOrder)->toArray();
                     return [
                         'type' => 'qrcode',
@@ -421,7 +422,7 @@ class PaymentGatewayController extends BaseController
                     return null;
             }
 
-        } catch (\Exception $e) {
+        } catch (\Throwable $e) {
             \Log::error('生成支付数据失败', [
                 'pay_method' => $payMethod,
                 'order_sn' => $order->order_sn,
@@ -463,7 +464,7 @@ class PaymentGatewayController extends BaseController
                 ]);
             }
 
-        } catch (\Exception $e) {
+        } catch (\Throwable $e) {
             \Log::error('网关支付成功处理失败', [
                 'order_sn' => $order->order_sn,
                 'error' => $e->getMessage()
@@ -504,7 +505,7 @@ class PaymentGatewayController extends BaseController
                 'http_code' => $httpCode
             ]);
 
-        } catch (\Exception $e) {
+        } catch (\Throwable $e) {
             \Log::error('业务系统通知发送失败', [
                 'notify_url' => $notifyUrl,
                 'payment_id' => $data['payment_id'] ?? '',
