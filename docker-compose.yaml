@@ -53,7 +53,7 @@ services:
   # Web 应用服务（Nginx + PHP-FPM）
   # ==========================================
   web:
-    image: dengziyang77/dujiaoka-web:latest
+    image: dengziyang/dujiaoka-web:latest
     platform: linux/amd64
     restart: always
     expose:
@@ -113,7 +113,7 @@ services:
   # Queue Worker 服务（处理异步任务）
   # ==========================================
   worker:
-    image: dengziyang77/dujiaoka-worker:latest
+    image: dengziyang/dujiaoka-worker:latest
     platform: linux/amd64
     restart: always
     command: php artisan queue:work redis --sleep=3 --tries=3
